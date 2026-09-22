@@ -1,8 +1,10 @@
-# Zhaoxian Engineering
+# Zhaoxian Engineering — Minecraft 1.12.2 Map Studio
 
 [简体中文](README.md)
 
 A local Minecraft Java 1.12.2 world and structure editor. It reads Anvil worlds, renders large terrain and structures, edits blocks with transaction backups, and exposes reviewable map operations through MCP for clients such as Codex.
+
+The project is initiated, designed, and maintained by its author. OpenAI Codex assists with implementation, debugging, automated tests, and open-source documentation. This is an independent community project and is not an official OpenAI, Mojang, or Microsoft product.
 
 ## Highlights
 
