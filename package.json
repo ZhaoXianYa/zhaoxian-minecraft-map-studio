@@ -1,7 +1,7 @@
 {
   "name": "zx-engineering-studio",
   "version": "2.11.0",
-  "description": "照献工程 - Minecraft Java 1.12.2 世界与建筑编辑器（无 canvas / 无 prismarine-viewer 渲染版）",
+  "description": "照献工程 - Minecraft Java 1.12.2 地图生成与世界编辑器",
   "main": "electron/main.cjs",
   "author": "ZX Engineering",
   "license": "MIT",
