@@ -1,0 +1,36 @@
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{spawn}=require('child_process'),Module=require('module')
+const {app,BrowserWindow}=require('electron')
+const root=fs.mkdtempSync(path.join(__dirname,'../../workbench-app-'))
+process.env.APPDATA=path.join(root,'appdata');fs.mkdirSync(process.env.APPDATA,{recursive:true})
+const profile=path.join(root,'profile');fs.mkdirSync(profile);app.setPath('userData',profile)
+fs.writeFileSync(path.join(profile,'cache-settings.json'),JSON.stringify({parent:path.join(root,'cache'),locationConfirmed:true,auto:false,days:7,maxMB:1024}))
+process.argv.push('--agent-port=44910')
+const main=path.join(__dirname,'../electron/main.cjs'),mod=new Module(main,module);mod.filename=main;mod.paths=Module._nodeModulePaths(path.dirname(main))
+mod._compile(fs.readFileSync(main,'utf8').replace('backgroundThrottling: false','backgroundThrottling: false, offscreen: true').replace("mainWindow.once('ready-to-show', () => mainWindow.show())","mainWindow.once('ready-to-show', () => {})"),main)
+const delay=ms=>new Promise(r=>setTimeout(r,ms))
+let child
+app.whenReady().then(async()=>{
+ try{
+  let w;for(let i=0;i<100;i++){w=BrowserWindow.getAllWindows()[0];if(w&&!w.webContents.isLoading()&&fs.existsSync(path.join(process.env.APPDATA,'照献工程/agent-connection.json')))break;await delay(100)}assert(w)
+  child=spawn(process.execPath,[path.join(__dirname,'../mcp/server.mjs')],{windowsHide:true,env:{...process.env,ELECTRON_RUN_AS_NODE:'1'},stdio:['pipe','pipe','pipe']})
+  let buffer='',id=0;const pending=new Map();child.stdout.on('data',d=>{buffer+=d;let n;while((n=buffer.indexOf('\n'))>=0){let r;try{r=JSON.parse(buffer.slice(0,n))}catch{}buffer=buffer.slice(n+1);if(r&&pending.has(r.id)){const p=pending.get(r.id);pending.delete(r.id);clearTimeout(p.timer);r.error?p.reject(Error(r.error.message)):p.resolve(r.result)}}});child.stderr.on('data',d=>process.stderr.write(d))
+  const rpc=(method,params)=>new Promise((resolve,reject)=>{const rid=++id,timer=setTimeout(()=>reject(Error('MCP timeout '+method)),30000);pending.set(rid,{resolve,reject,timer});child.stdin.write(JSON.stringify({jsonrpc:'2.0',id:rid,method,params})+'\n')})
+  const call=async(name,args={})=>{const r=await rpc('tools/call',{name,arguments:args});if(r.isError)throw Error(JSON.stringify(r.content));return JSON.parse(r.content.find(c=>c.type==='text').text)}
+  await rpc('initialize',{protocolVersion:'2024-11-05',capabilities:{},clientInfo:{name:'workbench-test',version:'1'}});child.stdin.write(JSON.stringify({jsonrpc:'2.0',method:'notifications/initialized'})+'\n')
+  const names=(await rpc('tools/list',{})).tools.map(t=>t.name);assert(names.includes('zx_start_import_job'));assert(names.includes('zx_list_history'));console.log('MCP tools: '+names.length)
+  await call('zx_create_void_world',{parentPath:root,name:'world'});await delay(1500)
+  const file=path.join(root,'sample.schematic');fs.writeFileSync(file,require('../src/core/legacy-schematic.cjs').writeLegacySchematic({width:3,height:1,length:1,blocks:Buffer.from([0,98,109]),data:Buffer.from([0,1,3])}))
+  let job=await call('zx_start_import_job',{path:file,name:'MCP蓝图测试',x:0,y:40,z:0})
+  const completed=async id=>{for(let i=0;i<200;i++){const j=(await call('zx_list_jobs')).find(j=>j.id===id);if(['completed','failed','canceled','recovery-needed'].includes(j.status))return j;await delay(100)}throw Error('Job timeout')}
+  job=await completed(job.id);assert.equal(job.status,'completed');assert.equal(job.result.verified,2)
+  await delay(1500);assert((await call('zx_undo_last')).ok);await delay(1500);assert((await call('zx_redo_last')).ok)
+  const history=await call('zx_list_history');assert(history.entries.length>0)
+  job=await call('zx_start_check_job',{x1:0,x2:6,y1:39,y2:45,z1:0,z2:3,points:[{name:'出生点',x:1,y:41,z:0}]});job=await completed(job.id);assert.equal(job.status,'completed')
+  await delay(4000)
+  const ui=await w.webContents.executeJavaScript(`(async()=>{showPanel('tasks');await refreshWorkbench();wbRenderReport(${JSON.stringify(job.result)});return {cards:document.querySelectorAll('#wbJobs .resource-card').length,history:document.querySelectorAll('#wbHistory .resource-card').length,version:require('../../package.json').version}})()`)
+  assert(ui.cards>=2&&ui.history>=1&&ui.version==='2.10.0')
+  await delay(300);assert.equal(await w.webContents.executeJavaScript("document.querySelector('.ins-tab.active').dataset.panel"),'tasks')
+  fs.writeFileSync(path.join(__dirname,'../../../outputs/任务与检查-2.10.png'),(await w.webContents.capturePage()).toPNG())
+  console.log('PASS: MCP initialize/list/create/import/status/undo/redo/check/history; actual renderer workbench; '+JSON.stringify(ui));console.log(root)
+ }catch(e){console.error(e);process.exitCode=1}finally{child?.kill();app.quit()}
+})

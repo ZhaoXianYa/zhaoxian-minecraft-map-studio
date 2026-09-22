@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; img-src 'self' data: blob: file:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval'; connect-src 'self' http://127.0.0.1:*; worker-src 'self' blob:;">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>照献工程</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header class="topbar">
+      <div class="brand-wrap">
+        <div class="brand-mark"><span>ZX</span></div>
+        <div class="brand-text">
+          <div class="brand-title">照献工程</div>
+          <div class="brand-sub">ZX VOXEL STUDIO · DESKTOP</div>
+        </div>
+        <div class="crumb"><span>世界工坊</span><b>›</b><span id="crumbWorld">未打开世界</span></div>
+      </div>
+      <div class="top-actions">
+        <div class="version-pill"><i></i> JAVA 1.12.2</div>
+        <button class="btn subtle" id="btnNew">新建世界</button>
+        <button class="btn subtle" id="btnOpen">导入世界</button>
+        <button class="btn subtle" id="btnSchematic">导入 .schematic</button>
+        <button class="btn primary" id="btnExport">导出</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside class="toolrail">
+        <button class="rail-btn active" data-tool="browse" title="浏览"><span class="ri">◇</span><em>浏览</em></button>
+        <button class="rail-btn" data-tool="select" title="选区"><span class="ri">⌗</span><em>选区</em></button>
+        <button class="rail-btn" data-tool="terrain" title="地形"><span class="ri">≈</span><em>地形</em></button>
+        <button class="rail-btn" data-tool="build" title="建筑"><span class="ri">▦</span><em>建筑</em></button>
+        <button class="rail-btn" data-tool="marker" title="标记"><span class="ri">◆</span><em>标记</em></button>
+        <div class="rail-spacer"></div>
+        <button class="rail-btn" data-tool="mcp" title="MCP"><span class="ri star">✦</span><em>MCP</em></button>
+        <button class="rail-btn" data-tool="settings" title="设置"><span class="ri">⚙</span><em>设置</em></button>
+      </aside>
+
+      <main class="stage">
+        <div class="stage-top">
+          <div class="scene-title">
+            <small id="sceneKicker">CURRENT WORLD</small>
+            <strong id="sceneName">等待导入世界</strong>
+            <span id="sceneMeta">支持 Minecraft Java 1.12.2 世界与 MCEdit .schematic</span>
+          </div>
+          <div class="view-tabs" id="viewTabs">
+            <button class="view-tab" data-view="detail">建筑预览</button>
+            <button class="view-tab active" data-view="overview">地图导航</button>
+            <button class="view-tab" data-view="top">俯视全图</button>
+            <button class="view-tab" data-view="front">正面</button>
+            <button class="view-tab" data-view="walk">玩家漫游</button>
+          </div>
+          <div class="camera-actions">
+            <button class="icon-btn" id="btnUndo" title="撤销">↶</button>
+            <button class="icon-btn" id="btnRedo" title="重做">↷</button>
+            <button class="icon-btn" id="btnFit" title="适配">适配</button>
+            <button class="icon-btn" id="btnCapture" title="导出预览">⌁</button>
+          </div>
+        </div>
+
+        <section class="viewport-shell">
+          <div id="viewport" class="viewport"></div>
+          <div id="loadProgress" class="load-progress hidden" role="status"></div>
+          <div class="location-bar"><label>X <input id="goX" type="number" value="0"></label><label>Y <input id="goY" type="number" value="80"></label><label>Z <input id="goZ" type="number" value="0"></label><button id="goLocation">查看此处</button></div>
+          <div id="emptyState" class="empty-state">
+            <div class="empty-mark">ZX</div>
+            <h2>打开地图，开始创造</h2>
+            <p>选择含有 region 文件夹的 Java 1.12.2 存档。<br>地图导航显示真实方块，平移后自动加载周边。<br>俯视全图可双击远距离定位；材质包在“世界”页选择。</p>
+            <div><button class="btn primary large" id="emptyOpen">导入现有世界</button><button class="btn subtle large" id="emptyNew">新建世界</button></div>
+          </div>
+          <div class="overlay-card world-card hidden" id="worldCard">
+            <small>WORLD OVERVIEW</small>
+            <strong id="worldCardName">世界</strong>
+            <p id="worldCardMeta">—</p>
+            <button id="enterDetail" class="mini-link">进入选中位置实景 →</button>
+          </div>
+          <div class="compass"><b>N</b><span></span><em>S</em></div>
+          <div class="viewport-help" id="viewportHelp">左键旋转 · Shift + 左键平移 · 滚轮缩放</div>
+          <div class="selection-badge hidden" id="selectionBadge"></div>
+        </section>
+
+        <footer class="statusbar">
+          <div class="status-left"><i></i><span id="statusMode">就绪</span><span class="sep"></span><span id="statusWorld">未打开世界</span></div>
+          <div class="status-center"><span>X <b id="statusX">0</b></span><span>Y <b id="statusY">64</b></span><span>Z <b id="statusZ">0</b></span></div>
+          <div class="status-right"><span id="statusLod">LOD —</span><span id="statusFps">— FPS</span></div>
+        </footer>
+      </main>
+
+      <aside class="inspector">
+        <div class="inspector-tabs" id="inspectorTabs">
+          <button class="ins-tab active" data-panel="plan">方案</button>
+          <button class="ins-tab" data-panel="materials">材料</button>
+          <button class="ins-tab" data-panel="edit">编辑</button>
+          <button class="ins-tab" data-panel="world">世界</button>
+          <button class="ins-tab" data-panel="mcp">MCP</button>
+          <button class="ins-tab" data-panel="tasks">任务</button>
+        </div>
+        <div class="inspector-scroll">
+          <section class="panel" data-panel-content="tasks">
+            <div class="panel-head"><h3>任务与检查</h3><button class="tiny-btn" id="wbRefresh">刷新</button></div>
+            <button class="btn primary full" id="wbImport">从蓝图文件建造</button>
+            <p class="panel-desc">后台写入并核对。取消会恢复任务前地图；中断后可恢复并从头重试。</p>
+            <div id="wbJobs" aria-live="polite"></div>
+            <div class="section-title"><b>地图检查</b><button class="text-btn" id="wbSelection">使用编辑选区</button></div>
+            <p class="panel-desc" id="wbBounds">先在“编辑”中设置检查范围，最多 150 万格。</p>
+            <label class="panel-desc" for="wbPoints">路线检查点（首行为起点）：每行 名称,X,Y,Z</label>
+            <textarea id="wbPoints" rows="4" class="concept" placeholder="入口,0,44,144&#10;终点,0,42,-128"></textarea>
+            <button class="btn subtle full" id="wbMarkers">填入选区内的地图标记</button>
+            <label class="layer-row"><span>额外检查 Boss 战斗区</span><input id="wbBoss" type="checkbox"></label>
+            <div class="coord-input-grid"><input id="wbBossX" type="number" value="0" aria-label="Boss X"><input id="wbBossY" type="number" value="42" aria-label="Boss Y"><input id="wbBossZ" type="number" value="0" aria-label="Boss Z"></div>
+            <div class="settings-grid"><label>半径（格）<input id="wbRadius" type="number" value="17" min="0" max="64"></label><label>净空高度（格）<input id="wbClearance" type="number" value="12" min="2" max="64"></label></div>
+            <button class="btn primary full" id="wbCheck">开始检查</button>
+            <p class="panel-desc">静态检查不模拟跳跃、游泳和动态门；装饰楼梯可能产生提示。路线必须完整位于选区内。</p>
+            <div id="wbReport"></div>
+            <div class="section-title"><b>编辑历史</b><span>当前维度 · 最近 15 次</span></div>
+            <div class="resource-actions"><button class="btn subtle" id="wbUndo">撤销上一步</button><button class="btn subtle" id="wbRedo">重做下一步</button></div>
+            <div id="wbActive"></div><div id="wbHistory"></div>
+          </section>
+          <section class="panel active" data-panel-content="plan">
+            <div class="panel-head"><div><small>DESIGN CONCEPT</small><h3 id="planTitle">建筑方案</h3></div><button class="tiny-btn" id="btnAddPlan">＋方案</button></div>
+            <textarea class="concept" id="conceptText" placeholder="在这里记录这个世界或建筑的设计理念……"></textarea>
+            <div class="palette-dots"><span></span><span></span><span></span><span></span><span></span></div>
+            <div class="section-title"><b>建筑规格</b><span id="planCount">0 个方案</span></div>
+            <div class="metric-grid">
+              <div><small>宽度 X</small><strong id="metricX">—</strong><em>m</em></div>
+              <div><small>进深 Z</small><strong id="metricZ">—</strong><em>m</em></div>
+              <div><small>高度 Y</small><strong id="metricY">—</strong><em>m</em></div>
+            </div>
+            <div class="sub-info"><span>世界区块</span><b id="metricChunks">—</b></div>
+            <div class="section-title"><b>空间布局</b><button class="text-btn" id="btnAddPart">＋ 添加区域</button></div>
+            <div id="planSelectWrap" class="field-row"><select id="planSelect"><option value="">暂无建筑方案</option></select></div>
+            <div id="partsList" class="parts-list"><div class="placeholder">创建建筑方案后，可以把主殿、偏殿、庭院、塔楼等拆成可定位区域。</div></div>
+            <div class="section-title"><b>显示图层</b><span>工作区</span></div>
+            <div class="layer-list" id="layerList"></div>
+          </section>
+
+          <section class="panel" data-panel-content="materials">
+            <div class="panel-head"><div><small>MATERIAL REPORT</small><h3>材料清单</h3></div><span class="tag" id="materialTotal">未统计</span></div>
+            <p class="panel-desc">默认按“实际材料”合并方向/状态，显示中文名、占比与数量；展开时仍保留 1.12.2 ID / Data。</p>
+            <div class="coord-box" id="materialCoords"></div>
+            <button class="btn primary full" id="btnMaterialStats">统计当前选区</button>
+            <div class="material-list" id="materialList"><div class="placeholder">先建立一个选区，再统计材料。</div></div>
+          </section>
+
+          <section class="panel" data-panel-content="edit">
+            <div class="panel-head"><div><small>WORLD TOOLS</small><h3>世界与建筑编辑</h3></div><span class="tag">事务保护</span></div>
+            <div class="tool-groups">
+              <div class="tool-group"><label>地形</label><div class="tool-grid"><button data-action="raise">抬高</button><button data-action="lower">降低</button><button data-action="smooth">平滑</button><button data-action="flatten">平整</button><button data-action="mountain">山体</button><button data-action="valley">山谷</button><button data-action="river">河流</button><button data-action="lake">湖泊</button><button data-action="road">道路</button></div></div>
+              <div class="tool-group"><label>建筑 / 场景</label><div class="tool-grid"><button data-action="fill">填充</button><button data-action="wall">墙体</button><button data-action="floor">地板</button><button data-action="pillar">立柱</button><button data-action="roof">人字屋顶</button><button data-action="tower">塔楼</button><button data-action="bridge">桥梁</button><button data-action="boss">Boss场地</button><button data-action="trees">散布树木</button></div></div>
+            </div>
+            <div class="edit-form" id="editForm">
+              <div class="form-title">参数</div>
+              <div class="field"><label>当前方块</label><input id="blockInput" value="stonebrick" placeholder="stonebrick / 98:2 / 石砖" /></div>
+              <div class="field"><label>笔刷半径</label><input id="radiusInput" type="number" value="18" min="1" max="256" /></div>
+              <div class="field"><label>强度 / 高度</label><input id="strengthInput" type="number" value="5" min="1" max="120" /></div>
+              <div class="field"><label>道路 / 河流宽度</label><input id="widthInput" type="number" value="7" min="1" max="80" /></div>
+              <button class="btn primary full" id="btnExecuteEdit">执行当前工具</button>
+              <p class="safe-note">每次修改自动备份涉及的 Region，可用“撤销”恢复最近一次事务。</p>
+            </div>
+            <div class="section-title"><b>选区</b><button class="text-btn" id="btnUseCursor">以当前坐标建立选区</button></div>
+            <div class="coord-input-grid">
+              <input id="x1" type="number" placeholder="X1"><input id="y1" type="number" placeholder="Y1"><input id="z1" type="number" placeholder="Z1">
+              <input id="x2" type="number" placeholder="X2"><input id="y2" type="number" placeholder="Y2"><input id="z2" type="number" placeholder="Z2">
+            </div>
+          </section>
+
+          <section class="panel" data-panel-content="world">
+            <div class="panel-head"><div><small>WORLD ARCHIVE</small><h3 id="worldPanelName">世界详情</h3></div><span class="tag">1.12.2</span></div>
+            <div class="section-title"><b>缓存管理</b><button class="text-btn" id="cacheRefresh">刷新占用</button></div>
+            <p class="panel-desc" id="cacheInfo" role="status">正在统计…</p>
+            <div class="settings-grid">
+              <label class="check-row"><input type="checkbox" id="cacheAuto">自动清理（启动及每 5 分钟空闲时）</label>
+              <label>过期天数<input type="number" id="cacheDays" min="1" max="365" value="7"></label>
+              <label>容量上限 MB<input type="number" id="cacheMax" min="64" max="102400" value="1024"></label>
+            </div>
+            <button class="btn subtle full" id="cacheSave">保存自动清理设置</button>
+            <button class="btn subtle full" id="cacheChoose">更改缓存位置（重启生效）</button>
+            <button class="btn subtle full" id="cacheClear">立即清理缓存</button>
+            <p class="panel-desc">仅清理预览和界面缓存；不删除地图、撤销历史或 MCP。超过容量时优先清理较旧文件。改位置不搬动旧文件，请先清理再更改。临时解压及 MCP 运行环境不在此范围内。</p>
+            <div class="world-stats" id="worldStats"></div>
+            <div class="section-title"><b>地图标记</b><button class="text-btn" id="btnAddMarker">＋ 添加</button></div>
+            <div id="markerList" class="simple-list"><div class="placeholder">暂无标记。</div></div>
+            <div class="section-title"><b>保护区域</b><button class="text-btn" id="btnProtectSelection">保护选区</button></div>
+            <div id="protectionList" class="simple-list"><div class="placeholder">暂无保护区域。</div></div>
+            <div class="section-title"><b>显示质量</b><span>性能 / 清晰度</span></div>
+            <div class="settings-grid">
+              <label>完整世界精度<select id="overviewQuality"><option value="0">自动推荐</option><option value="1">逐方块（1:1）</option><option value="2">高（1:2）</option><option value="4">较高（1:4）</option><option value="8">流畅（1:8）</option><option value="16">超大地图（1:16）</option></select></label>
+              <label>平移灵敏度<input id="panSensitivity" type="number" min="0.05" max="3" step="0.05" value="0.6" title="0.05–3；1 表示鼠标与画面等速移动，默认 0.6"></label>
+              <label>预览半径（区块）<input id="detailDistance" type="number" min="1" max="32" step="1" value="4" aria-describedby="detailDistanceHint"></label>
+              <label>渲染倍率<select id="renderScale"><option value="0.75">性能</option><option value="1">平衡</option><option value="1.25">清晰</option></select></label>
+              <label class="check-row"><input id="showGrid" type="checkbox"> 显示世界网格</label>
+              <label class="check-row"><input id="showBarriers" type="checkbox"> 显示屏障（检查空气墙）</label>
+            </div>
+            <p id="detailDistanceHint" class="placeholder" aria-live="polite"></p>
+            <button class="btn subtle full" id="btnApplyDistance">应用预览范围</button>
+            <div class="section-title"><b>高清材质</b><span id="resourceStatus">未加载</span></div>
+            <div class="resource-card">
+              <div class="resource-copy"><strong>Java 1.12.2 材质源</strong><span id="resourcePath">自动读取本机 1.12.2.jar；也可选择服务器资源包 ZIP。</span></div>
+              <div class="resource-actions"><button class="btn subtle" id="btnAutoResource">自动检测</button><button class="btn subtle" id="btnChooseResource">选择 JAR / ZIP</button></div>
+            </div>
+            <button class="btn subtle full" id="btnRescanWorld">按当前精度重新扫描</button>
+            <div class="section-title"><b>维度</b><span>切换后重新加载</span></div>
+            <select id="dimensionSelect"><option value="overworld">主世界 Overworld</option><option value="nether">下界 Nether</option><option value="end">末地 End</option></select>
+          </section>
+
+          <section class="panel" data-panel-content="mcp">
+            <div class="panel-head"><div><small>CODEX BRIDGE</small><h3>Codex / MCP</h3></div><span class="tag good">READY</span></div>
+            <p class="panel-desc">软件自带本地 MCP Server。以后 Codex 有额度时，可直接调用地形、建筑、事务、截图等工具。</p>
+            <div class="bridge-card"><small>本地桥接</small><strong id="bridgeUrl">127.0.0.1:43927</strong><span id="bridgeState">未连接世界</span></div>
+              <button class="btn primary full" id="btnInstallMcp">一键接入 Codex（免装 Node.js）</button>
+              <button class="btn subtle full" id="btnMcpLocation">选择安装位置并接入（可选 D 盘）</button>
+              <p class="panel-desc" id="mcpLocation" style="overflow-wrap:anywhere"></p>
+              <p class="panel-desc">MCP 固定安装在 current，升级不再新建版本号目录。更新期间临时备份，成功后清理；被占用时请关闭 Codex 重试。2.8.x 遗留目录不会自动删除。仍需先选择位置。</p>
+              <p class="panel-desc" id="mcpInstallStatus" role="status">首次接入先选择保存位置，取消则不安装。之后记住位置；检测成功才更新 Codex 配置。完成后重启 Codex；建造时保持本软件打开。</p>
+              <div class="section-title"><b>高级配置（先点击一键接入）</b><button class="text-btn" id="btnCopyMcp">复制</button></div>
+            <pre id="mcpSnippet" class="codebox">等待读取路径…</pre>
+            <div class="mcp-caps">
+              <span>世界读取</span><span>山体 / 山谷 / 河湖</span><span>道路 / 桥梁</span><span>塔楼 / Boss场地</span><span>事务回滚</span><span>保护区域</span><span>截图检查</span><span>.schematic</span>
+            </div>
+            <button class="btn subtle full" id="btnCaptureMcp">生成当前预览 PNG</button>
+          </section>
+        </div>
+      </aside>
+    </div>
+
+    <div class="toast-wrap" id="toastWrap"></div>
+    <div class="modal-backdrop hidden" id="modalBackdrop">
+      <div class="modal" id="modal"><div class="modal-head"><h3 id="modalTitle">新建</h3><button id="modalClose">×</button></div><div id="modalBody"></div></div>
+    </div>
+  </div>
+  <script src="workbench.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

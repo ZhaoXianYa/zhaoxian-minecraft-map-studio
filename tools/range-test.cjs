@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict')
+const {previewRadius}=require('../src/core/preview-range.cjs')
+const {collectDetailBlocks}=require('../src/core/detail-mesh.cjs')
+;(async()=>{
+  for(const n of [1,10,16,32])assert.equal(previewRadius(n),n)
+  for(const n of ['',0,-1,33,2.5,NaN,Infinity,'bad'])assert.throws(()=>previewRadius(n))
+  let reads=0;const r=await collectDetailBlocks({loadRaw:async()=>{reads++;return null}},{radiusChunks:16})
+  assert.equal(r.radiusChunks,16);assert.equal(reads,35*35,'后台不得截断至旧的 10 区块上限')
+  console.log('PASS: range validation, radius 16 reaches backend, 1225 halo chunk reads')
+})().catch(e=>{console.error(e);process.exitCode=1})

@@ -1,0 +1,8 @@
+const fs=require('fs'),path=require('path'),os=require('os'),assert=require('assert/strict')
+const {runtimeBase,saveLocation}=require('../electron/mcp-install.cjs')
+const root=fs.mkdtempSync(path.join(os.tmpdir(),'zx-mcp-location-'))
+assert.throws(()=>runtimeBase(root),/选择/)
+const selected=path.join(root,'其他磁盘 空格','ZX-MCP');saveLocation(root,selected)
+assert.equal(runtimeBase(root),selected)
+assert.equal(path.join(runtimeBase(root),'2.8.0'),path.join(selected,'2.8.0'))
+console.log('PASS: default path, custom location with Unicode/spaces, saved location reused by future versions')

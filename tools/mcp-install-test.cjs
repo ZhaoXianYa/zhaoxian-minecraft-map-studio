@@ -1,0 +1,13 @@
+const assert=require('assert/strict')
+const {mergeConfig,snippet}=require('../electron/mcp-install.cjs')
+const s=snippet('C:\\测试 空格\\app.exe','C:\\测试 空格\\server.mjs')
+const original='# 保留\nmodel = "example"\n[mcp_servers.other]\ncommand="other"\n[mcp_servers."zx-engineering"]\ncommand="old"\n[mcp_servers."zx-engineering".env]\nOLD="yes"\n[projects."D:\\\\work"]\ntrust_level="trusted"\n'
+const merged=mergeConfig(original,s)
+assert(merged.includes('[mcp_servers.other]\ncommand="other"'))
+assert(merged.includes('trust_level="trusted"'))
+assert(!merged.includes('OLD='));assert(!merged.includes('command="old"'))
+assert.equal(mergeConfig(merged,s),merged)
+assert.throws(()=>mergeConfig('value="""multiline"""',s))
+assert.throws(()=>mergeConfig('mcp_servers = {}',s))
+assert.equal(mergeConfig('',s),s)
+console.log('PASS: merge, preserve unrelated settings, replace old env, repeat install, safe refusal, empty config')

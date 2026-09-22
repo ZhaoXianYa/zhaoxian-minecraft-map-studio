@@ -1,0 +1,7 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path')
+const {RawWorld}=require('../src/core/raw-world.cjs')
+;(async()=>{const dir=fs.mkdtempSync(path.join(os.tmpdir(),'zx-signed-nbt-'));let w=new RawWorld(dir)
+ await w.editBlocks([{x:0,y:64,z:0,id:169,data:12},{x:1,y:64,z:0,id:251,data:15},{x:2,y:64,z:0,id:4095,data:15}]);await w.close()
+ w=new RawWorld(dir);assert.deepEqual(await w.getBlock(0,64,0),{id:169,data:12});assert.deepEqual(await w.getBlock(1,64,0),{id:251,data:15});assert.deepEqual(await w.getBlock(2,64,0),{id:4095,data:15})
+ await w.editColumns({x1:0,x2:0,z1:0,z2:0},({set})=>set(65,251,15));await w.close();console.log('PASS: high IDs, metadata, Add nibbles, signed NBT roundtrip and column edits')
+})().catch(e=>{console.error(e);process.exitCode=1})

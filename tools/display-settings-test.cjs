@@ -1,0 +1,15 @@
+'use strict'
+const fs=require('fs'),path=require('path'),os=require('os'),assert=require('assert/strict')
+const {ProjectStore}=require('../src/core/project-store.cjs'),settings=require('../electron/display-settings.cjs')
+;(async()=>{
+ const root=fs.mkdtempSync(path.join(os.tmpdir(),'zx-display-')),file=path.join(root,'prefs.json')
+ const a=new ProjectStore(path.join(root,'a')),b=new ProjectStore(path.join(root,'b'))
+ await a.ensure();await a.update({ui:{viewDistance:25,renderScale:1.25,resourcePackPath:'sample.jar',panSensitivity:.7}})
+ await settings.apply(file,a);settings.save(file,{showBarriers:true,showGrid:true})
+ await b.ensure();await b.update({ui:{viewDistance:4,lastPosition:{x:23,y:80,z:0}}})
+ const p=await settings.apply(file,b);assert.equal(p.ui.viewDistance,25);assert.equal(p.ui.resourcePackPath,'sample.jar');assert.equal(p.ui.showBarriers,true);assert.equal(p.ui.lastPosition.x,23)
+ settings.save(file,{viewDistance:NaN,renderScale:7,panSensitivity:0,showBarriers:'yes',lastPosition:{x:0}})
+ const persisted=settings.read(file);assert.equal(persisted.viewDistance,25);assert.equal(persisted.panSensitivity,.7);assert.equal(persisted.lastPosition,undefined)
+ const again=await settings.apply(file,new ProjectStore(path.join(root,'a')));assert.equal(again.ui.showBarriers,true)
+ console.log('PASS: settings survive reload and world switch; invalid values rejected; world position remains local')
+})().catch(e=>{console.error(e);process.exitCode=1})
